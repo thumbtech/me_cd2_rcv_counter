@@ -8,11 +8,13 @@ The goal here is to use the "raw" 2018 Congressional District 2 ballot data, ava
 
 Reproducing the results is non-trivial, because (a) there are many more possible voting scenarios on a ranked-choice ballot and (b) an instant run-off must be conducted using the ranking mechanism when no candidate reaches the 50% + 1 vote count threshold. The applicable logic rules are well-documented, however, and are also available on the [Secretary's website](https://www.maine.gov/sos/cec/rules/29/250/250c535.docx).
 
+With the raw ballot data and documented rules, transparency would dictate that anybody can reproduce the certified results!
+
 ## Methodology
 
 I used a CakePHP console shell script only because I'm familiar with its use and it allowed for expedited handling of the libraries I used to directly ingest the MS Excel-based data.
 
-This is a quick-and-dirty implementatation ... definitely not the most elegant or rugged example. Nevertheless, it worked as intended with minimal tweaking right out of the box. My code for loading and counting the data is in the [RcvShell.php file](https://github.com/thumbtech/me_cd2_rcv_counter/blob/master/src/Shell/RcvShell.php).
+This is a quick-and-dirty implementatation ... definitely not the most elegant or rugged example. Nevertheless, it worked as intended with minimal tweaking right out of the box! My code for loading and counting the data is in the [src/Shell/RcvShell.php file](https://github.com/thumbtech/me_cd2_rcv_counter/blob/master/src/Shell/RcvShell.php).
 
 ## Results
 
@@ -75,4 +77,4 @@ REP Poliquin, Bruce                138,931 -  49.38%
 DEM Golden, Jared F. WINS!
 ```
 
-The final results match the certified results. The sub-counts deliver slightly since (a) I did not conduct a batch elimination and (b) I do not distinguish between undervotes and exhausted ballots in later rounds. It would be easy to add these features!
+The final results match the certified results. The sub-counts differ slightly since (a) I did not conduct a batch elimination and (b) I do not distinguish between undervotes and exhausted ballots in later rounds. It would be easy to add these features!
