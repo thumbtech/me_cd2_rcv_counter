@@ -16,6 +16,10 @@ I used a CakePHP console shell script only because I'm familiar with its use and
 
 This is a quick-and-dirty implementatation ... definitely not the most elegant or rugged example. Nevertheless, it worked as intended with minimal tweaking right out of the box! My code for loading and counting the data is in the [src/Shell/RcvShell.php file](https://github.com/thumbtech/me_cd2_rcv_counter/blob/master/src/Shell/RcvShell.php).
 
+Note: These data spreadsheets are quite large and the [PHPOffice/PhpSpreadsheet](https://github.com/PHPOffice/PhpSpreadsheet) library is not particularly efficient. This required increasing the PHP memory allocation to 2048M in order to avoid an out-of-memory error.
+
+In an ideal world, the Secretary or State would publish the raw data in a single CSV file... Still, it is very cool that the data is made available! The Secretary of State and his staff, along with all CD2 local election officials, deserve kudos for the professionalism and transparency with which they conducted this, the first-ever use of an instant run-off vote for federal office in the US!
+
 ## Results
 
 After loading the spreadsheets into a directory and configuring for use of that directory, the script is triggered in the console with:
@@ -24,7 +28,7 @@ After loading the spreadsheets into a directory and configuring for use of that 
 bin/cake rcv
 ```
 
-The follow results are returned:
+The following results are returned:
 
 ```bash
 RCV COUNT
