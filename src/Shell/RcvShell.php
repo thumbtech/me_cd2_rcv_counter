@@ -28,7 +28,7 @@ class RcvShell extends Shell
         // get the spreadsheets from the directory
         $dir = new Folder($this->data_dir);
         $this->out('Examining spreadsheets in folder ' . $this->data_dir);
-        $data_files = $dir->find('.*\.xlsx');
+        $data_files = $dir->find('^(?!~\$)..*\.xlsx');
 
 		$reader = IOFactory::createReader('Xlsx');
 		$reader->setReadDataOnly(TRUE);
