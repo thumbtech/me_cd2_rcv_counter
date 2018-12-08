@@ -16,7 +16,7 @@ I used a CakePHP console shell script only because I'm familiar with its use and
 
 This is a quick-and-dirty implementatation ... definitely not the most elegant or rugged example. Nevertheless, it worked as intended with minimal tweaking right out of the box! My code for loading and counting the data is in the [src/Shell/RcvShell.php file](https://github.com/thumbtech/me_cd2_rcv_counter/blob/master/src/Shell/RcvShell.php).
 
-Note: These data spreadsheets are quite large and the [PHPOffice/PhpSpreadsheet](https://github.com/PHPOffice/PhpSpreadsheet) library is not particularly efficient. This required increasing the PHP memory allocation to 2048M in order to avoid an out-of-memory error.
+Note: These data spreadsheets are quite large and the [PHPOffice/PhpSpreadsheet](https://github.com/PHPOffice/PhpSpreadsheet) library is not particularly efficient. This required increasing the PHP memory allocation to 1024M in order to avoid an out-of-memory error.
 
 In an ideal world, the Secretary or State would publish the raw data in a single CSV file... Still, it is very cool that the data is made available! The Secretary of State and his staff, along with all CD2 local election officials, deserve kudos for the professionalism and transparency with which they conducted this, the first-ever use of an instant run-off vote for federal office in the US!
 
@@ -34,22 +34,25 @@ The following results are returned:
 RCV COUNT
 ---------------------------------------------------------------
 Examining spreadsheets in folder c:/Users/Jeff/Desktop/CD2_RCV
-Reading AUXCVRProofedCVR95RepCD2.xlsx ...
-Reading Nov18CVRExportFINAL1.xlsx ...
-Reading Nov18CVRExportFINAL2.xlsx ...
-Reading Nov18CVRExportFINAL3.xlsx ...
-Reading RepCD2-8final.xlsx ...
-Reading UOCAVA-AUX-CVRRepCD2.xlsx ...
-Reading UOCAVA-FINALRepCD2.xlsx ...
-Reading UOCAVA2CVRRepCD2.xlsx ...
+Reading AUXCVRProofedCVR95RepCD2.xlsx (#0) ...
+Reading Nov18CVRExportFINAL1.xlsx (#1) ...
+Reading Nov18CVRExportFINAL2.xlsx (#2) ...
+Reading Nov18CVRExportFINAL3.xlsx (#3) ...
+Reading RepCD2-8final.xlsx (#4) ...
+Reading UOCAVA-AUX-CVRRepCD2.xlsx (#5) ...
+Reading UOCAVA-FINALRepCD2.xlsx (#6) ...
+Reading UOCAVA2CVRRepCD2.xlsx (#7) ...
 Collected 296,077 ballots ...
+---------------------------------------------------------------
+Normalizing 296,077 ballots ...
 ---------------------------------------------------------------
 Counting ballots!
 ---------------------------------------------------------------
 Round #1 ...
 Ballots counted                    296,077
-Undervotes                           6,018
 Overvotes                              435
+Undervotes                           6,018
+Exhausted                                0
 Ballots remaining                  289,624
 Needed to win                      144,813
 REP Poliquin, Bruce                134,184 -  46.33%
@@ -57,28 +60,23 @@ DEM Golden, Jared F.               132,013 -  45.58%
 Bond, Tiffany L.                    16,552 -   5.71%
 Hoar, William R.S.                   6,875 -   2.37%
 ---------------------------------------------------------------
-No winner ... eliminiating Hoar, William R.S.
+No winner in Round #1 ... conduct RCV count!
+Eliminating Hoar, William R.S. & Bond, Tiffany L. ...
+---------------------------------------------------------------
 Round #2 ...
 Ballots counted                    296,077
-Undervotes                           8,159
-Overvotes                              456
-Ballots remaining                  287,462
-Needed to win                      143,732
-REP Poliquin, Bruce                135,073 -  46.99%
-DEM Golden, Jared F.               133,216 -  46.34%
-Bond, Tiffany L.                    19,173 -   6.67%
----------------------------------------------------------------
-No winner ... eliminiating Bond, Tiffany L.
-Round #3 ...
-Ballots counted                    296,077
-Undervotes                          14,173
 Overvotes                              533
+Undervotes                          13,838
+Exhausted                              335
 Ballots remaining                  281,371
 Needed to win                      140,686
 DEM Golden, Jared F.               142,440 -  50.62%
 REP Poliquin, Bruce                138,931 -  49.38%
 ---------------------------------------------------------------
 DEM Golden, Jared F. WINS!
+---------------------------------------------------------------
+That was easy.
+Thank you for playing!
 ```
 
-The final results match the certified results. The sub-counts differ slightly since (a) I did not conduct a batch elimination and (b) I do not distinguish between undervotes and exhausted ballots in later rounds. It would be easy to add these features!
+The final results match the certified results!
