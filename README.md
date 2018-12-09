@@ -80,3 +80,27 @@ Thank you for playing!
 ```
 
 The final results match the certified results!
+
+## Alternative Counting Methods
+
+I've included some alternative counting methods just for grins. See [Borda Count](https://en.wikipedia.org/wiki/Borda_count).
+
+For a Borda count starting at 1 with x candidates, invoke:
+
+```bash
+bin/cake rcv borda_one x
+```
+
+Likewise a Borda count starting at 0 with x candidates:
+
+```bash
+bin/cake rcv borda_zero x
+```
+
+And finally a Dowdall system count:
+
+```bash
+bin/cake rcv dowdall
+```
+
+Interestingly, using the raw ballot data for 2018 ME CD2, Bruce Poliquin wins using the Borda (starting at 1) and Dowdall systems. Golden wins using Borda when starting with 0. The discrepancy between the instant run-off method and these counts is primarily explained by the fact that ballots ranking Golden above Poliquin were more likely to include Poliquin (35%) than the inverse (27%). This speaks to the differing strategies voters might employ when completing their ballots, where in my opinion instant run-off requires the least amount of "strategic" voting and is less likely to benefit or penalize candidates based on the voters' "lower" rankings.

@@ -19,93 +19,17 @@ class RcvShell extends Shell
 		'DEM Golden, Jared F. (5471)' => 'DEM Golden, Jared F.',
 	];
 
+	// ballot data array!
+	private $ballots = [];
+
 	// this is the main procedure ...
     public function main()
     {
         $this->out('RCV COUNT');
         $this->hr();
 
-        // get the spreadsheets from the directory
-        $dir = new Folder($this->data_dir);
-        $this->out('Examining spreadsheets in folder ' . $this->data_dir);
-        $data_files = $dir->find('^(?!~\$)..*\.xlsx');
-
-		$reader = IOFactory::createReader('Xlsx');
-		$reader->setReadDataOnly(TRUE);
-
-		// $ballots array is going to contain all the data pulled from the spreadsheets!
-		$ballots = [];
-		// now read 'em
-        foreach ($data_files as $dfk => $dfv)
-        {
-        	$this->out("Reading {$dfv} (#{$dfk}) ...");
-        	$spreadsheet = $reader->load($this->data_dir . DS . $dfv);
-			$worksheet = $spreadsheet->getActiveSheet();
-			$highestRow = $worksheet->getHighestRow();
-
-			// a little hackey: just read the hard-coded columns above from 2nd row thru end ...
-			for ($row = 2; $row <= $highestRow; ++$row)
-			{
-				$raw = [];
-				foreach ($this->choice_cols as $col) $raw[] = (string) $worksheet->getCellByColumnAndRow($col, $row)->getValue();
-				// record ballot source and raw rankings
-				$ballots[] = [
-					'source' => [
-						'file_index' => $dfk,
-						'row' => $row,
-					],
-					'raw' => $raw,
-				];
-			} // end each row on the spreadsheet
-
-			// clean up for memory!
-    		$spreadsheet->disconnectWorksheets();
-    		unset($spreadsheet);
-        } // end each spreadsheet
-
-	    $this->out('Collected ' . number_format(count($ballots)) . ' ballots ...');
-        $this->hr();
-
-        $this->out('Normalizing ' . number_format(count($ballots)) . ' ballots ...');
-        $this->hr();
-
-        // now I have the raw ballots ... but we need to normalize per rules
-	    // rules available on ME Sec of State Website
-	    // https://www.maine.gov/sos/cec/rules/29/250/250c535.docx
-        foreach ($ballots as $bk => $bv)
-        {
-    		$ranks = [];
-	    	$undervotes = 0;
-	    	foreach ($bv['raw'] as $rv)
-	    	{
-	    		// first trim and "map" the raw data
-	    		$rv = trim($rv);
-	    		if (isset($this->data_map[$rv])) $rv = $this->data_map[$rv];
-	    		if (empty($rv) or $rv == 'undervote')
-	    		{
-	    			$undervotes++;
-	    			// if 2 or more undervotes, ignore rest of ballot ...
-	    			if ($undervotes >= 2)
-	    			{
-	    				break;
-	    			}
-	    			continue;
-	    		}
-	    		// they ranked something ... so reset the undervote counter!
-	    		$undervotes = 0;
-	    		// if overvote, add it and ignore rest of ballot
-	    		if ($rv == 'overvote')
-	    		{
-	    			$ranks[] = 'overvote';
-	    			break;
-	    		}
-	    		// if they already voted for the candidate specified, skip this entry
-	    		if (in_array($rv, $ranks)) continue;
-	    		// OK, add their entry!
-	    		$ranks[] = $rv;
-	    	}
-	    	$ballots[$bk]['ranks'] = $ranks;
-        } // end each ballot
+        // populate $this->ballots!
+        $this->create_ballot_data($this->data_dir);
 
         // now each ballot contains a normalize array of the voters rankings
         // the ranks array is like a stack of cards in order of preference,
@@ -125,7 +49,7 @@ class RcvShell extends Shell
 	        $totals = ['undervote' => 0, 'overvote' => 0, 'exhausted' => 0];
 
 	        // count 'em!
-	        foreach ($ballots as $bv)
+	        foreach ($this->ballots as $bv)
 	        {
 	        	// I cleaned out 'undervote', so in my world, an undervote is a ballot with *no* votes
 	        	// check for no votes, and record as undervote here:
@@ -216,8 +140,10 @@ class RcvShell extends Shell
         	{
 	       		$last_place = array_pop($total_votes_k);
 	       		$last_place_votes = array_pop($total_votes_v);
-	       		// don't eliminate this candidate if they can still win or tie!
-	       		if ($last_place_votes + $eliminated_votes >= $total_votes_v[0]) break;
+	       		// new last place ...
+	       		$next_to_last = array_slice($total_votes_v, -1);
+	       		// don't eliminate this candidate if they can still beat the next to last!
+	       		if ($last_place_votes + $eliminated_votes > $next_to_last[0]) break;
 	       		// OK elimate this candidate
 	       		$eliminated[] = $last_place;
 	       		$eliminated_votes += $last_place_votes;
@@ -225,7 +151,7 @@ class RcvShell extends Shell
 
         	// go through ballots removing all the elminated candidates, leaving remaining votes
          	$this->out('Eliminating ' . implode(' & ', $eliminated) . ' ...');
-	        foreach ($ballots as $bk => $bv)
+	        foreach ($this->ballots as $bk => $bv)
 	        {
 	        	$ranks = [];
 	        	foreach ($bv['ranks'] as $v)
@@ -233,9 +159,9 @@ class RcvShell extends Shell
 	        		if (in_array($v, $eliminated)) continue;
 	        		$ranks[] = $v;
 	        	}
-	        	$ballots[$bk]['ranks'] = $ranks;
+	        	$this->ballots[$bk]['ranks'] = $ranks;
 	   	    } // end each ballot
-	   	    // now the same $ballots can be recounted ...
+	   	    // now the same $this->ballots can be recounted ...
 
         } // end each round
 
@@ -244,6 +170,207 @@ class RcvShell extends Shell
         $this->out('That was easy.');
         $this->out('Thank you for playing!');
     } // end main procedure
+
+    public function bordaOne($candidate_count)
+    {
+        $this->out('RCV BORDA (BASE 1) COUNT');
+        $this->hr();
+
+        // populate $this->ballots!
+        $this->create_ballot_data($this->data_dir);
+
+        // I can begin the count now!
+        $this->out('Counting ballots!');
+       
+        // count 'em!
+        $totals = [];
+        foreach ($this->ballots as $bv)
+        {
+ 			$rank = 0;
+ 			foreach ($bv['ranks'] as $rv)
+ 			{
+ 				$rank++;
+ 				// ignore overvote flag!
+ 				if ($rv == 'overvote') continue;
+ 				$vote = $candidate_count + 1 - $rank;
+       			if (!isset($totals[$rv])) $totals[$rv] = 0;
+        		$totals[$rv] += $vote;
+ 			} // end each rank
+        } // end each ballot
+
+        // sort candidates from high to low vote totals
+        arsort($totals);
+
+	    // extract the candidates
+        $totals_k = array_keys($totals);
+
+        // display candidate vote totals with percentage
+        foreach ($totals as $tvk => $tvv) $this->out($this->show_count($tvk, $tvv));
+        $this->hr();
+	    $this->out($totals_k[0] . ' WINS!');
+    }
+
+    public function bordaZero($candidate_count)
+    {
+        $this->out('RCV BORDA (BASE 0) COUNT');
+        $this->hr();
+
+        // populate $this->ballots!
+        $this->create_ballot_data($this->data_dir);
+
+        // I can begin the count now!
+        $this->out('Counting ballots!');
+       
+        // count 'em!
+        $totals = [];
+        foreach ($this->ballots as $bv)
+        {
+ 			$rank = 0;
+ 			foreach ($bv['ranks'] as $rv)
+ 			{
+ 				$rank++;
+ 				// ignore overvote flag!
+ 				if ($rv == 'overvote') continue;
+ 				$vote = $candidate_count - $rank;
+       			if (!isset($totals[$rv])) $totals[$rv] = 0;
+        		$totals[$rv] += $vote;
+ 			} // end each rank
+        } // end each ballot
+
+        // sort candidates from high to low vote totals
+        arsort($totals);
+
+	    // extract the candidates
+        $totals_k = array_keys($totals);
+
+        // display candidate vote totals with percentage
+        foreach ($totals as $tvk => $tvv) $this->out($this->show_count($tvk, $tvv));
+        $this->hr();
+	    $this->out($totals_k[0] . ' WINS!');
+    }
+
+    public function dowdall()
+    {
+        $this->out('RCV DOWDALL COUNT');
+        $this->hr();
+
+        // populate $this->ballots!
+        $this->create_ballot_data($this->data_dir);
+
+        // I can begin the count now!
+        $this->out('Counting ballots!');
+       
+        // count 'em!
+        $totals = [];
+        foreach ($this->ballots as $bv)
+        {
+ 			$rank = 0;
+ 			foreach ($bv['ranks'] as $rv)
+ 			{
+ 				$rank++;
+ 				// ignore overvote flag!
+ 				if ($rv == 'overvote') continue;
+ 				$vote = floor(1 / $rank * 100);
+       			if (!isset($totals[$rv])) $totals[$rv] = 0;
+        		$totals[$rv] += $vote;
+ 			} // end each rank
+        } // end each ballot
+
+        // sort candidates from high to low vote totals
+        arsort($totals);
+
+	    // extract the candidates
+        $totals_k = array_keys($totals);
+
+        // display candidate vote totals with percentage
+        foreach ($totals as $tvk => $tvv) $this->out($this->show_count($tvk, $tvv));
+        $this->hr();
+	    $this->out($totals_k[0] . ' WINS!');
+    }
+
+    private function create_ballot_data($data_dir)
+    {
+        // get the spreadsheets from the directory
+        $dir = new Folder($data_dir);
+        $this->out('Examining spreadsheets in folder ' . $data_dir);
+        $data_files = $dir->find('^(?!~\$)..*\.xlsx');
+
+		$reader = IOFactory::createReader('Xlsx');
+		$reader->setReadDataOnly(TRUE);
+
+		// now read 'em
+        foreach ($data_files as $dfk => $dfv)
+        {
+        	$this->out("Reading {$dfv} (#{$dfk}) ...");
+        	$spreadsheet = $reader->load($this->data_dir . DS . $dfv);
+			$worksheet = $spreadsheet->getActiveSheet();
+			$highestRow = $worksheet->getHighestRow();
+
+			// a little hackey: just read the hard-coded columns above from 2nd row thru end ...
+			for ($row = 2; $row <= $highestRow; ++$row)
+			{
+				$raw = [];
+				foreach ($this->choice_cols as $col) $raw[] = (string) $worksheet->getCellByColumnAndRow($col, $row)->getValue();
+				// record ballot source and raw rankings
+				$this->ballots[] = [
+					'source' => [
+						'file_index' => $dfk,
+						'row' => $row,
+					],
+					'raw' => $raw,
+				];
+			} // end each row on the spreadsheet
+
+			// clean up for memory!
+    		$spreadsheet->disconnectWorksheets();
+    		unset($spreadsheet);
+        } // end each spreadsheet
+
+	    $this->out('Collected ' . number_format(count($this->ballots)) . ' ballots ...');
+        $this->hr();
+
+        $this->out('Normalizing ballots ...');
+        $this->hr();
+
+        // now I have the raw ballots ... but we need to normalize per rules
+	    // rules available on ME Sec of State Website
+	    // https://www.maine.gov/sos/cec/rules/29/250/250c535.docx
+        foreach ($this->ballots as $bk => $bv)
+        {
+    		$ranks = [];
+	    	$undervotes = 0;
+	    	foreach ($bv['raw'] as $rv)
+	    	{
+	    		// first trim and "map" the raw data
+	    		$rv = trim($rv);
+	    		if (isset($this->data_map[$rv])) $rv = $this->data_map[$rv];
+	    		if (empty($rv) or $rv == 'undervote')
+	    		{
+	    			$undervotes++;
+	    			// if 2 or more undervotes, ignore rest of ballot ...
+	    			if ($undervotes >= 2)
+	    			{
+	    				break;
+	    			}
+	    			continue;
+	    		}
+	    		// they ranked something ... so reset the undervote counter!
+	    		$undervotes = 0;
+	    		// if overvote, add it and ignore rest of ballot
+	    		if ($rv == 'overvote')
+	    		{
+	    			$ranks[] = 'overvote';
+	    			break;
+	    		}
+	    		// if they already voted for the candidate specified, skip this entry
+	    		if (in_array($rv, $ranks)) continue;
+	    		// OK, add their entry!
+	    		$ranks[] = $rv;
+	    	}
+	    	$this->ballots[$bk]['ranks'] = $ranks;
+        } // end each ballot
+
+    }
 
     // function to display values
     private function show_count($label, $value)
